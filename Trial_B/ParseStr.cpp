@@ -84,7 +84,7 @@ namespace Trial_B {
 		) const noexcept
 		{
 			const auto next_char = 登録された文字を探す(pchUnregistered + 1, pchEnd);
-			Draw(hdc, lprect, &*pchUnregistered, static_cast<UINT>(next_char.first - pchUnregistered));
+			Draw(hdc, lprect, pchUnregistered, static_cast<UINT>(next_char.first - pchUnregistered));
 			if (next_char.first == pchEnd)
 				return;
 			else
