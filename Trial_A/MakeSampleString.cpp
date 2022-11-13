@@ -7,5 +7,5 @@
 std::basic_string<TCHAR> Trial_A::MakeSampleString()
 {
 	//対象の文字列
-	return _T("\x1b[2JHellow\r\n");
+	return _T("\x1b[2JHello\r\n");
 }
