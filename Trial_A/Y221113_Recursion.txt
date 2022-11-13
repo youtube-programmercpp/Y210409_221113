@@ -1,0 +1,90 @@
+﻿
+GoldSmith  • 7 時間前
+すいません。多分非常に近い分野になるかと思いまして、ここにコメントさせていただきます。
+私はついさっき次のような仕様のコードを作りましたので、見ていただけないでしょうか。
+
+まず、「Windows デスクトップアプリケーション」でプロジェクトを追加し、初期コードを作成。
+そこのWM_PAINTメッセージ部分に以下の仕様になるコードを追加。
+ペイント対象の文字列を描画。
+・'\x1b'、’\r'、'\n'をそれぞれ”ESC”、”￥￥ｒ”、”￥￥ｎ”の青色の文字列としてドロー。
+・その他はデフォルトの色でドロー。
+以上が仕様です。
+逆ポーランドではないので、1つ先読みをする必要はない為、順番通りドローする再帰のコードを思うがままに書きました。
+WM_PAINTの部分と追加した関数とヘッダーの部分を書きます。
+using namespace std;
+
+     case WM_PAINT:
+        {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hWnd, &ps);
+            //対象の文字列
+            basic_string<TCHAR> tstr(_T("\x1b[2JHellow\r\n"));
+            //テキストアラインモード設定
+            UINT DefTA = GetTextAlign(hdc);
+            MoveToEx(hdc, 100, 100, NULL);
+            SetTextAlign(hdc, DefTA & ~TA_NOUPDATECP | TA_UPDATECP);
+            ParseStr(tstr, 0, ps);
+            SetTextAlign(hdc,DefTA);
+            EndPaint(hWnd, &ps);
+        }
+        break;
+//追加した関数
+void ParseStr(basic_string<TCHAR> const& str,const size_t pos ,const PAINTSTRUCT & ps)
+{
+    const basic_string<TCHAR> EscCode(_T("\x1b\r\n"));
+    const size_t fpos=str.find_first_of(EscCode, pos);
+    if (fpos == basic_string<TCHAR>::npos)
+    {
+        Draw(str.substr(pos, str.size() - pos), ps);
+        return;
+    }
+    Draw(str.substr(pos, fpos - pos), ps);
+    ConvAndDraw(str.at(fpos),fpos,ps);
+    if (fpos + 1 == basic_string<TCHAR>::npos)
+    {
+        return;
+    }
+    ParseStr(str, fpos + 1, ps);
+    return;
+}
+
+void ConvAndDraw(const TCHAR ch, const size_t pos, const PAINTSTRUCT& ps)
+{
+    map<TCHAR, basic_string<TCHAR>> mapCode =
+    { {_T('\x1b'),_T("ESC")},{_T('\r'),_T("\\r")},{_T('\n'),_T("\\n")} };
+    basic_string<TCHAR> strCode( mapCode.at(ch));
+    DrawBlue(strCode, ps);
+}
+
+void DrawBlue(const basic_string<TCHAR>& str, const PAINTSTRUCT& ps)
+{
+    COLORREF DefCol = GetTextColor(ps.hdc);
+    SetTextColor(ps.hdc, RGB(0, 127, 127));
+    Draw(str, ps);
+    SetTextColor(ps.hdc, DefCol);
+}
+
+void Draw(const basic_string<TCHAR>& tstr, const PAINTSTRUCT& ps)
+{
+    ExtTextOut(ps.hdc
+        , 0
+        , 0
+        , ETO_CLIPPED
+        , &ps.rcPaint
+        , tstr.data()
+        , tstr.size()
+        , NULL);
+}
+
+//ヘッダー
+#pragma once
+#include <Windows.h>
+#include <tchar.h>
+#include <map>
+#include <string>
+#include "resource.h"
+using namespace std;
+void ParseStr(basic_string<TCHAR> const &str,const size_t pos, const PAINTSTRUCT  &ps);
+void ConvAndDraw(const TCHAR ch, const size_t pos, const PAINTSTRUCT& ps);
+void DrawBlue(const basic_string<TCHAR>& str, const PAINTSTRUCT& ps);
+void Draw(const basic_string<TCHAR>& tstr, const PAINTSTRUCT& ps);
